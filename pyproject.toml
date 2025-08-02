@@ -6,7 +6,7 @@ authors = [
     { name = "Martin Krasser", email = "martin@gradion.ai" },
     { name = "Christoph Stumpf", email = "chris@gradion.ai" },
 ]
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.10,<3.14"
 readme = "README.md"
 license = "Apache-2.0"
 dependencies = [
@@ -16,6 +16,9 @@ dependencies = [
     "pillow>=11.0.0,<12",
     "tornado>=6.4.0,<7",
     "typer>=0.12.5,<0.13",
+    # Required for running the FastAPI server and handling uploads
+    "python-multipart>=0.0.20,<0.1",
+    "uvicorn[standard]>=0.34.1,<0.35",
 ]
 
 [tool.uv]

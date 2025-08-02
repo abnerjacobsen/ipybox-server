@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # Main ipybox FastAPI server service
+  ipybox-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Use different Dockerfiles for dev/prod if needed
+      args:
+        - BUILD_ENV=${BUILD_ENV:-dev}
+    image: ipybox-server:${TAG:-latest}
+    container_name: ipybox-server
+    volumes:
+      # Mount Docker socket to allow container management from inside
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Mount code directory for development hot-reload
+      - ./:/app:${MOUNT_MODE:-rw}
+      # Mount persistent data directory
+      - ipybox-data:/data
+    ports:
+      - "${IPYBOX_PORT:-8000}:8000"
+    environment:
+      # Server configuration
+      - IPYBOX_HOST=0.0.0.0
+      - IPYBOX_PORT=8000
+      - IPYBOX_API_KEY=${IPYBOX_API_KEY:-}
+      - IPYBOX_DEFAULT_TAG=${IPYBOX_DEFAULT_TAG:-gradion-ai/ipybox}
+      - IPYBOX_CLEANUP_INTERVAL=${IPYBOX_CLEANUP_INTERVAL:-300}
+      - IPYBOX_MAX_IDLE_TIME=${IPYBOX_MAX_IDLE_TIME:-3600}
+      - IPYBOX_CORS_ORIGINS=${IPYBOX_CORS_ORIGINS:-*}
+      - IPYBOX_LOG_LEVEL=${IPYBOX_LOG_LEVEL:-INFO}
+      # Docker configuration
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      # Python settings
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+    restart: ${RESTART_POLICY:-unless-stopped}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ipybox-network
+    # Different profiles for dev and production
+    profiles:
+      - dev
+      - prod
+    # For development mode with hot-reload
+    command: >
+      sh -c "
+      if [ \"$${DEV_MODE:-false}\" = \"true\" ]; then
+        python run_server.py --dev --log-level DEBUG;
+      else
+        python run_server.py;
+      fi"
+
+  # Optional: Add a reverse proxy for TLS termination in production
+  nginx:
+    image: nginx:alpine
+    container_name: ipybox-nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    ports:
+      - "${NGINX_PORT:-443}:443"
+    depends_on:
+      - ipybox-server
+    restart: ${RESTART_POLICY:-unless-stopped}
+    networks:
+      - ipybox-network
+    # Only include in production profile
+    profiles:
+      - prod
+
+volumes:
+  # Persistent data volume
+  ipybox-data:
+    name: ipybox-data
+
+networks:
+  ipybox-network:
+    name: ipybox-network
+    driver: bridge
+
+# Usage:
+# Development mode:
+#   DEV_MODE=true docker-compose --profile dev up
+# 
+# Production mode:
+#   docker-compose --profile prod up
+#
+# With custom settings:
+#   IPYBOX_API_KEY=mysecret IPYBOX_PORT=9000 docker-compose up
