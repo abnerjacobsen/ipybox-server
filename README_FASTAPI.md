@@ -203,6 +203,91 @@ curl $HDR -o project.tar.gz \
 1. Create (`POST /containers`)  
 2. Optionally initialise firewall  
 3. Execute code / manage files / call MCP  
+## 14. MCP Proxy (NEW!)
+
+The ipybox server now ships with a **spec-compliant MCP Proxy** that implements the **Streamable HTTP** transport defined by the Model Context Protocol (MCP).
+
+### 14.1 Why a Proxy?
+
+The original MCP helper routes (`/mcp/{server}`) wrap individual tools with convenience
+end-points.  
+The new proxy exposes the **full MCP JSON-RPC 2.0 interface** so you can connect
+third-party MCP clients such as **Claude Desktop**, **LiteLLM Gateway**, **FastMCP**, etc.
+
+| Feature | Legacy `/mcp/{server}` | New `/mcp-proxy/{server}` |
+|---------|-----------------------|---------------------------|
+| Protocol layer | Custom helpers | **Official MCP Streamable HTTP** |
+| Message format | Tool-specific REST | **JSON-RPC 2.0** (batch & notifications) |
+| Streaming | Blocking only | **SSE streaming** |
+| Session model | Per-request | **Persistent sessions** (`Mcp-Session-Id`) |
+| Ecosystem | ipybox only | Works with any MCP client |
+
+### 14.2 Proxy Endpoint
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/containers/{id}/mcp-proxy/{server}` | Send JSON-RPC message or batch |
+
+Headers:
+
+* `X-API-Key` – authentication (if enabled)  
+* `Content-Type: application/json` – request body  
+* `Accept: application/json` **or** `text/event-stream` – choose response format  
+* `Mcp-Session-Id` – (optional) continue an existing session
+
+### 14.3 Example Workflow
+
+```bash
+# 1) Initialize (creates session)
+curl -X POST $API/containers/$CID/mcp-proxy/echo \
+     -H 'Content-Type: application/json' \
+     -d '{"jsonrpc":"2.0","method":"initialize","id":1}'
+# ↳ Response header will contain Mcp-Session-Id: mcp-123…
+
+# 2) List tools (reuse session)
+curl -X POST $API/containers/$CID/mcp-proxy/echo \
+     -H 'Content-Type: application/json' \
+     -H 'Mcp-Session-Id: mcp-123' \
+     -d '{"jsonrpc":"2.0","method":"tools/list","id":2}'
+
+# 3) Call a tool (JSON)
+curl -X POST $API/containers/$CID/mcp-proxy/echo \
+     -H 'Content-Type: application/json' \
+     -H 'Mcp-Session-Id: mcp-123' \
+     -d '{"jsonrpc":"2.0","method":"tools/call","params":{"tool_name":"echo","params":{"message":"Hello"}},"id":3}'
+
+# 4) Call the same tool with **SSE streaming**
+curl -N -X POST $API/containers/$CID/mcp-proxy/echo \
+     -H 'Content-Type: application/json' \
+     -H 'Accept: text/event-stream' \
+     -H 'Mcp-Session-Id: mcp-123' \
+     -d '{"jsonrpc":"2.0","method":"tools/call","params":{"tool_name":"echo","params":{"message":"Hello-SSE"}},"id":4}'
+```
+
+### 14.4 Session Lifecycle
+
+1. First request ⇒ proxy spawns stdio MCP server (via **supergateway**)  
+2. Response returns `Mcp-Session-Id` header  
+3. Include that ID in subsequent calls to maintain context  
+4. Sessions auto-expire after the idle timeout (`IPYBOX_MAX_IDLE_TIME`, default 1 h)
+
+### 14.5 Legacy vs Proxy Quick Reference
+
+```bash
+# Legacy helper (still works)
+curl -X POST $API/containers/$CID/mcp/echo/echo \
+     -d '{"params":{"message":"Hi"}}'
+
+# Proxy – full MCP
+curl -X POST $API/containers/$CID/mcp-proxy/echo \
+     -d '{"jsonrpc":"2.0","method":"tools/call","params":{"tool_name":"echo","params":{"message":"Hi"}},"id":1}'
+```
+
+**Key wins:** full spec compliance, batch requests, real-time SSE, persistent sessions & compatibility with the broader MCP ecosystem.
+
+For an end-to-end demo see `examples/mcp_proxy_demo.py` and the dedicated
+`README_MCP_PROXY.md`.
+
 4. Destroy (`DELETE /containers/{id}`) *or* let idle-cleanup remove it automatically.
 
 Lifecycle metadata (`created_at`, `last_used_at`, `status`) is reported in every container object.
