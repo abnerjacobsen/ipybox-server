@@ -11,3 +11,8 @@
 2025-08-02 22:56:30,605 - mcp_echo_server - INFO - Handling tools/list request
 2025-08-02 22:56:30,607 - mcp_echo_server - INFO - Handling tools/call request for tool 'echo'
 2025-08-02 22:56:30,607 - mcp_echo_server - INFO - Echo tool executed successfully: 'Hello, MCP!'
+2025-08-02 23:55:04,779 - mcp_echo_server - INFO - Starting MCP echo server
+2025-08-02 23:55:04,780 - mcp_echo_server - INFO - Handling initialize request
+2025-08-02 23:55:04,780 - mcp_echo_server - INFO - Handling tools/list request
+2025-08-02 23:55:04,781 - mcp_echo_server - INFO - Handling tools/call request for tool 'echo'
+2025-08-02 23:55:04,781 - mcp_echo_server - INFO - Echo tool executed successfully: 'Hello from MCP Proxy Test!'

@@ -579,18 +579,86 @@ async def get_mcp_server_tools(
     relpath: str = Query("mcpgen"),
     _: bool = Depends(verify_api_key)
 ):
-    """Get available tools for an MCP server."""
+    """
+    Get available tools for an MCP server.
+
+    Strategy:
+    1. Ensure the generated source code for the requested MCP server exists
+       (legacy `mcpgen` directory).
+    2. Attempt to query the MCP **proxy** for a `tools/list` response which
+       contains full schema metadata.
+    3. If the proxy is unavailable or the request fails, fall back to the
+       legacy behaviour (return only tool names).
+    """
     container = await container_manager.get_container(container_id)
-    
+
+    # ---------------------------------------------------------------------
+    # 1) Confirm that the server sources exist (legacy generation check)
+    # ---------------------------------------------------------------------
     try:
-        async with ResourceClient(port=container.resource_port) as client:
-            sources = await client.get_mcp_sources(relpath=relpath, server_name=server_name)
-            return {"server_name": server_name, "tools": list(sources.keys())}
-    except Exception as e:
+        async with ResourceClient(port=container.resource_port) as rc:
+            sources: Dict[str, str] = await rc.get_mcp_sources(
+                relpath=relpath,
+                server_name=server_name,
+            )
+    except Exception as e:  # pragma: no cover
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get MCP server tools: {str(e)}"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"MCP server {server_name} not found: {e}",
         )
+
+    if not sources:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"MCP server {server_name} not found",
+        )
+
+    # ---------------------------------------------------------------------
+    # 2) Ask the MCP proxy for the real `tools/list` result (rich metadata)
+    # ---------------------------------------------------------------------
+    try:
+        proxy = getattr(app.state, "mcp_proxy", None)
+        if proxy is not None:
+            tools_list_request = {
+                "jsonrpc": "2.0",
+                "method": "tools/list",
+                "id": 1,
+            }
+
+            # We only need the first (and only) response for this request
+            async for resp in proxy.handle_mcp_request(
+                container_id=container_id,
+                server_name=server_name,
+                request_data=tools_list_request,
+            ):
+                if "result" in resp and "tools" in resp["result"]:
+                    tools = resp["result"]["tools"]
+                    return {
+                        "server_name": server_name,
+                        "tools": tools,
+                        # Provide legacy field for backwards-compat
+                        "tool_names": [t.get("name") for t in tools],
+                    }
+                break
+    except Exception as e:  # pragma: no cover
+        logger.warning(
+            "Failed to get detailed tool info via MCP proxy for %s: %s",
+            server_name,
+            e,
+        )
+
+    # ---------------------------------------------------------------------
+    # 3) Fallback – legacy response (only tool names, no schema)
+    # ---------------------------------------------------------------------
+    tool_names = list(sources.keys())
+    return {
+        "server_name": server_name,
+        "tools": [
+            {"name": n, "description": f"Tool: {n}", "inputSchema": {}}
+            for n in tool_names
+        ],
+        "tool_names": tool_names,
+    }
 
 
 @app.post("/containers/{container_id}/mcp/{server_name}/{tool_name}", response_model=MCPToolResponse, tags=["MCP"])
