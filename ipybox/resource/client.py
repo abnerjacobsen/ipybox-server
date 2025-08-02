@@ -145,6 +145,24 @@ class ResourceClient:
         async with self._session.post(url, data=content, headers=headers) as response:
             response.raise_for_status()
 
+    # ---------------------------------------------------------------------
+    # New convenience overloads (bytes-based) for FastAPI server integration
+    # ---------------------------------------------------------------------
+
+    async def upload_file_content(self, relpath: str, content: bytes) -> None:
+        """Upload file *content* (already in bytes) to the container.
+
+        Args:
+            relpath: Path relative to the container's `/app` directory
+            content: Raw file bytes
+        """
+        mime_type, _ = mimetypes.guess_type(str(relpath))
+        headers = {"Content-Type": mime_type} if mime_type else {}
+
+        url = f"{self._base_url}/files/{relpath}"
+        async with self._session.post(url, data=content, headers=headers) as response:
+            response.raise_for_status()
+
     async def download_file(self, relpath: str, local_path: Path) -> None:
         """Download a file from the container.
 
@@ -166,6 +184,20 @@ class ResourceClient:
             async with aiofiles.open(local_path, mode="wb") as f:
                 async for chunk in response.content.iter_chunked(1024 * 1024):  # 1MB chunks
                     await f.write(chunk)
+
+    async def download_file_content(self, relpath: str) -> bytes:
+        """Download file content **as bytes** from the container.
+
+        Args:
+            relpath: Path relative to the container's `/app` directory
+
+        Returns:
+            Raw bytes of the requested file.
+        """
+        url = f"{self._base_url}/files/{relpath}"
+        async with self._session.get(url) as response:
+            response.raise_for_status()
+            return await response.read()
 
     async def delete_file(self, relpath: str) -> None:
         """Delete a file from the container.
@@ -211,6 +243,17 @@ class ResourceClient:
         async with self._session.post(url, data=tar_buffer.getvalue(), headers=headers) as response:
             response.raise_for_status()
 
+    async def upload_directory_content(self, relpath: str, content: bytes) -> None:
+        """Upload a directory tar archive (bytes) to the container.
+
+        Args:
+            relpath: Path relative to the container's `/app` directory
+            content: Bytes of a `.tar.gz` archive representing the directory tree
+        """
+        url = f"{self._base_url}/directories/{relpath}"
+        headers = {"Content-Type": "application/x-gzip"}
+        async with self._session.post(url, data=content, headers=headers) as response:
+            response.raise_for_status()
     async def download_directory(self, relpath: str, local_path: Path) -> None:
         """Download a directory from the container as a tar archive.
 
@@ -236,3 +279,18 @@ class ResourceClient:
                 with tarfile.open(fileobj=tar_buffer, mode="r:gz") as tar:
                     # Extract all files
                     tar.extractall(path=local_path)
+
+    async def download_directory_content(self, relpath: str) -> bytes:
+        """Download a directory tar archive **as bytes** from the container.
+
+        Args:
+            relpath: Path relative to the container's `/app` directory
+
+        Returns:
+            Bytes of a `.tar.gz` archive representing the requested directory.
+        """
+        url = f"{self._base_url}/directories/{relpath}"
+        async with self._session.get(url) as response:
+            response.raise_for_status()
+            return await response.read()
+
