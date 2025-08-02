@@ -5,7 +5,7 @@ This guide provides instructions for setting up a development environment for `i
 Clone the repository:
 
 ```bash
-git clone https://github.com/gradion-ai/ipybox.git
+git clone https://github.com/ghcr.io/gradion-ai/ipybox.git
 cd ipybox
 ```
 

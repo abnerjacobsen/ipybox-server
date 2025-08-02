@@ -46,14 +46,14 @@ class IpyboxClient:
     
     # ==================== Container Management ====================
     
-    async def create_container(self, tag: str = "gradion-ai/ipybox", binds: Dict[str, str] = None, 
+    async def create_container(self, tag: str = "ghcr.io/gradion-ai/ipybox", binds: Dict[str, str] = None, 
                               env: Dict[str, str] = None) -> Dict[str, Any]:
         """Create a new execution container.
         
         Example HTTP Request:
         POST /containers
         {
-            "tag": "gradion-ai/ipybox",
+            "tag": "ghcr.io/gradion-ai/ipybox",
             "binds": {"./data": "data"},
             "env": {"MY_VAR": "value"}
         }

@@ -1,6 +1,6 @@
 # Usage
 
-Code examples in the following sections are from the project's [examples](https://github.com/gradion-ai/ipybox/tree/main/examples) directory. They use a [default](docker.md#default-image) `gradion-ai/ipybox` Docker image that you need to build yourself with
+Code examples in the following sections are from the project's [examples](https://github.com/ghcr.io/gradion-ai/ipybox/tree/main/examples) directory. They use a [default](docker.md#default-image) `ghcr.io/gradion-ai/ipybox` Docker image that you need to build yourself with
 
 ```bash
 python -m ipybox build
@@ -196,7 +196,7 @@ If you want to run a code execution container on a remote host but manage the co
 
 !!! example "Generated function"
 
-    The example below generates a [`fetch`](https://github.com/gradion-ai/ipybox/blob/main/docs/mcpgen/fetchurl/fetch.py) function from the input schema of the `fetch` tool provided by the [Fetch MCP server](https://github.com/modelcontextprotocol/servers/tree/main/src/fetch).
+    The example below generates a [`fetch`](https://github.com/ghcr.io/gradion-ai/ipybox/blob/main/docs/mcpgen/fetchurl/fetch.py) function from the input schema of the `fetch` tool provided by the [Fetch MCP server](https://github.com/modelcontextprotocol/servers/tree/main/src/fetch).
 
 ```python
 --8<-- "examples/10_mcp_support.py:import"
@@ -228,7 +228,7 @@ Calling a generated MCP client function, executes the corresponding MCP tool. To
 ### Remote MCP servers
 
 In addition to `stdio` based MCP servers that run inside the container, `ipybox` also supports connecting to remote MCP servers running with `streamable-http` or legacy `sse` transports.
-This is demonstrated below with an [example MCP server](https://github.com/gradion-ai/ipybox/blob/main/tests/mcp_server.py) that is part of the project. Start the server in a separate terminal on the host machine:
+This is demonstrated below with an [example MCP server](https://github.com/ghcr.io/gradion-ai/ipybox/blob/main/tests/mcp_server.py) that is part of the project. Start the server in a separate terminal on the host machine:
 
 ```bash
 python tests/mcp_server.py --transport streamable-http --port 8000

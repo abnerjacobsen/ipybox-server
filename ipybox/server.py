@@ -33,7 +33,7 @@ API_KEY = os.environ.get("IPYBOX_API_KEY", "")
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
 # Default Docker image tag
-DEFAULT_DOCKER_TAG = os.environ.get("IPYBOX_DEFAULT_TAG", "gradion-ai/ipybox")
+DEFAULT_DOCKER_TAG = os.environ.get("IPYBOX_DEFAULT_TAG", "ghcr.io/gradion-ai/ipybox")
 
 # Container cleanup settings
 CONTAINER_CLEANUP_INTERVAL = int(os.environ.get("IPYBOX_CLEANUP_INTERVAL", "300"))  # 5 minutes

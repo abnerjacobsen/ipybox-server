@@ -53,7 +53,7 @@ Environment variable (or CLI flag) | Purpose | Default
 `IPYBOX_HOST` | Bind address | `0.0.0.0`
 `IPYBOX_PORT` | Bind port | `8000`
 `IPYBOX_API_KEY` | API-key string. Empty disables auth | *empty*
-`IPYBOX_DEFAULT_TAG` | Default Docker image | `gradion-ai/ipybox`
+`IPYBOX_DEFAULT_TAG` | Default Docker image | `ghcr.io/gradion-ai/ipybox`
 `IPYBOX_CLEANUP_INTERVAL` | Seconds between idle-check passes | `300`
 `IPYBOX_MAX_IDLE_TIME` | Seconds of inactivity before container removal | `3600`
 `IPYBOX_CORS_ORIGINS` | Comma-separated CORS origins | `*`
@@ -105,7 +105,7 @@ HDR="-H X-API-Key:$KEY"
 
 # Create container
 CID=$(curl -s -X POST $API/containers $HDR -H "Content-Type:application/json" \
-      -d '{"tag":"gradion-ai/ipybox"}' | jq -r .id)
+      -d '{"tag":"ghcr.io/gradion-ai/ipybox"}' | jq -r .id)
 
 # Execute code
 curl -s -X POST $API/containers/$CID/execute $HDR \

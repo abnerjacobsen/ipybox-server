@@ -12,7 +12,7 @@ Environment Variables:
     IPYBOX_HOST - Host to bind the server to (default: 0.0.0.0)
     IPYBOX_PORT - Port to bind the server to (default: 8000)
     IPYBOX_API_KEY - API key for authentication (default: none, auth disabled)
-    IPYBOX_DEFAULT_TAG - Default Docker image tag (default: gradion-ai/ipybox)
+    IPYBOX_DEFAULT_TAG - Default Docker image tag (default: ghcr.io/gradion-ai/ipybox)
     IPYBOX_CLEANUP_INTERVAL - Interval in seconds for container cleanup (default: 300)
     IPYBOX_MAX_IDLE_TIME - Maximum idle time in seconds for containers (default: 3600)
     IPYBOX_CORS_ORIGINS - Comma-separated list of allowed CORS origins (default: *)
@@ -68,7 +68,7 @@ def print_api_examples(host: str, port: int, api_key: Optional[str] = None):
 
     examples = [
         ("Health check", f"curl {base_url}/health"),
-        ("Create container", f'curl -X POST {base_url}/containers {auth_header} -H "Content-Type: application/json" -d \'{{"tag": "gradion-ai/ipybox"}}\''),
+        ("Create container", f'curl -X POST {base_url}/containers {auth_header} -H "Content-Type: application/json" -d \'{{"tag": "ghcr.io/gradion-ai/ipybox"}}\''),
         ("List containers", f"curl {base_url}/containers {auth_header}"),
         ("Execute code", f'curl -X POST {base_url}/containers/{{container_id}}/execute {auth_header} -H "Content-Type: application/json" -d \'{{"code": "print(\\\"Hello, world!\\\")"}}\''),
         ("Stream code execution", f'curl -X POST {base_url}/containers/{{container_id}}/execute/stream {auth_header} -H "Content-Type: application/json" -d \'{{"code": "for i in range(5): print(f\\\"Count: {{i}}\\\"); import time; time.sleep(0.5)"}}\''),
@@ -115,8 +115,8 @@ def parse_args():
     parser.add_argument("--api-key", default=os.environ.get("IPYBOX_API_KEY", ""),
                         help="API key for authentication (default: none, auth disabled)")
     
-    parser.add_argument("--default-tag", default=os.environ.get("IPYBOX_DEFAULT_TAG", "gradion-ai/ipybox"),
-                        help="Default Docker image tag (default: gradion-ai/ipybox)")
+    parser.add_argument("--default-tag", default=os.environ.get("IPYBOX_DEFAULT_TAG", "ghcr.io/gradion-ai/ipybox"),
+                        help="Default Docker image tag (default: ghcr.io/gradion-ai/ipybox)")
     
     parser.add_argument("--cleanup-interval", type=int, 
                         default=int(os.environ.get("IPYBOX_CLEANUP_INTERVAL", "300")),

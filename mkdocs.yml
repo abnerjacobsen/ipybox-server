@@ -1,8 +1,8 @@
 site_name: ipybox
 site_description: Python code execution sandbox based on IPython and Docker
 
-repo_name: gradion-ai/ipybox
-repo_url: https://github.com/gradion-ai/ipybox
+repo_name: ghcr.io/gradion-ai/ipybox
+repo_url: https://github.com/ghcr.io/gradion-ai/ipybox
 
 copyright: Copyright &copy; 2025 Gradion AI
 

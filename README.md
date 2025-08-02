@@ -3,9 +3,9 @@
 <p align="left">
     <a href="https://gradion-ai.github.io/ipybox/"><img alt="Website" src="https://img.shields.io/website?url=https%3A%2F%2Fgradion-ai.github.io%2Fipybox%2F&up_message=online&down_message=offline&label=docs"></a>
     <a href="https://pypi.org/project/ipybox/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/ipybox?color=blue"></a>
-    <a href="https://github.com/gradion-ai/ipybox/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/gradion-ai/ipybox"></a>
-    <a href="https://github.com/gradion-ai/ipybox/actions"><img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/gradion-ai/ipybox/test.yml"></a>
-    <a href="https://github.com/gradion-ai/ipybox/blob/main/LICENSE"><img alt="GitHub License" src="https://img.shields.io/github/license/gradion-ai/ipybox?color=blueviolet"></a>
+    <a href="https://github.com/ghcr.io/gradion-ai/ipybox/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/ghcr.io/gradion-ai/ipybox"></a>
+    <a href="https://github.com/ghcr.io/gradion-ai/ipybox/actions"><img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/ghcr.io/gradion-ai/ipybox/test.yml"></a>
+    <a href="https://github.com/ghcr.io/gradion-ai/ipybox/blob/main/LICENSE"><img alt="GitHub License" src="https://img.shields.io/github/license/ghcr.io/gradion-ai/ipybox?color=blueviolet"></a>
     <a href="https://pypi.org/project/ipybox/"><img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/ipybox"></a>
 </p>
 
@@ -49,7 +49,7 @@ import asyncio
 from ipybox import ExecutionClient, ExecutionContainer
 
 async def main():
-    async with ExecutionContainer(tag="ghcr.io/gradion-ai/ipybox:minimal") as container:
+    async with ExecutionContainer(tag="ghcr.io/ghcr.io/gradion-ai/ipybox:minimal") as container:
         async with ExecutionClient(port=container.executor_port) as client:
             result = await client.execute("print('Hello, world!')")
             print(f"Output: {result.text}")

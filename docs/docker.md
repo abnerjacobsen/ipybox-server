@@ -4,7 +4,7 @@ You can either use one of the [prebuilt](https://gradion-ai.github.io/freeact/en
 
 ### Default image
 
-To build a default `ipybox` Docker image with name `gradion-ai/ipybox` and minimal dependencies, run:
+To build a default `ipybox` Docker image with name `ghcr.io/gradion-ai/ipybox` and minimal dependencies, run:
 
 ```bash
 python -m ipybox build
@@ -23,10 +23,10 @@ To build a custom `ipybox` Docker image with additional Python packages preinsta
 Then build the image by referencing the `dependencies.txt` file and optionally providing a custom tag:
 
 ```bash
-python -m ipybox build -d dependencies.txt -t gradion-ai/ipybox-custom:v1
+python -m ipybox build -d dependencies.txt -t ghcr.io/gradion-ai/ipybox-custom:v1
 ```
 
-Code executed in containers of the custom `gradion-ai/ipybox-custom:v1` image can now import these packages.
+Code executed in containers of the custom `ghcr.io/gradion-ai/ipybox-custom:v1` image can now import these packages.
 
 !!! note
 
