@@ -500,8 +500,8 @@ def run_sync_demo():
         # Using a simple echo MCP server for demo purposes
         client.register_mcp_server(
             server_name="echo",
-            command="uvx",
-            args=["mcp-server-echo"]
+            command="python3",
+            args=["examples/simple_mcp_echo_server.py"]
         )
         
         # Initialize MCP server (JSON response)
@@ -562,8 +562,8 @@ async def run_async_demo():
             # Using a simple echo MCP server for demo purposes
             await client.register_mcp_server(
                 server_name="echo",
-                command="uvx",
-                args=["mcp-server-echo"]
+                command="python3",
+                args=["examples/simple_mcp_echo_server.py"]
             )
             
             # Initialize MCP server (JSON response)
