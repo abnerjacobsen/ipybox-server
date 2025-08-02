@@ -17,8 +17,12 @@ from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field, validator
 
 from ipybox import ExecutionClient, ExecutionContainer, ResourceClient
+from ipybox.mcp_proxy import create_mcp_proxy, mcp_proxy_lifecycle
 from ipybox.executor import ExecutionError, ExecutionResult
 from ipybox.mcp.run import run_async
+
+# Standard library
+from contextlib import asynccontextmanager
 
 # Configure logging
 logging.basicConfig(
@@ -38,22 +42,6 @@ DEFAULT_DOCKER_TAG = os.environ.get("IPYBOX_DEFAULT_TAG", "ghcr.io/gradion-ai/ip
 # Container cleanup settings
 CONTAINER_CLEANUP_INTERVAL = int(os.environ.get("IPYBOX_CLEANUP_INTERVAL", "300"))  # 5 minutes
 CONTAINER_MAX_IDLE_TIME = int(os.environ.get("IPYBOX_MAX_IDLE_TIME", "3600"))  # 1 hour
-
-# Create FastAPI app
-app = FastAPI(
-    title="ipybox API",
-    description="API for secure Python code execution in Docker containers",
-    version="0.1.0",
-)
-
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=os.environ.get("IPYBOX_CORS_ORIGINS", "*").split(","),
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # ==================== Pydantic Models ====================
 
@@ -119,7 +107,6 @@ class MCPToolRequest(BaseModel):
 class MCPToolResponse(BaseModel):
     result: Optional[str] = None
     error: Optional[str] = None
-
 
 # ==================== State Management ====================
 
@@ -307,6 +294,67 @@ class ContainerManager:
 # Initialize container manager
 container_manager = ContainerManager()
 
+# ==================== Application Lifecycle ====================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifecycle manager that handles startup and shutdown"""
+    logger.info("Starting ipybox server")
+    
+    # Start container manager cleanup task
+    await container_manager.start_cleanup_task()
+    
+    # Create and start MCP proxy
+    mcp_proxy = create_mcp_proxy(
+        container_manager=container_manager,
+        session_timeout=CONTAINER_MAX_IDLE_TIME,
+        cleanup_interval=CONTAINER_CLEANUP_INTERVAL,
+    )
+    await mcp_proxy.start()
+    
+    # Add MCP proxy routes to the app
+    app.include_router(mcp_proxy.create_router(), tags=["MCP Proxy"])
+    
+    # Store proxy in app state for access in endpoints
+    app.state.mcp_proxy = mcp_proxy
+    
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down ipybox server")
+    
+    # Stop MCP proxy
+    await mcp_proxy.stop()
+    
+    # Stop container manager
+    await container_manager.stop_cleanup_task()
+    
+    # Clean up all containers
+    container_ids = list(container_manager.containers.keys())
+    for container_id in container_ids:
+        try:
+            await container_manager.destroy_container(container_id)
+        except Exception as e:
+            logger.error(f"Error destroying container {container_id} during shutdown: {e}")
+
+
+# Create FastAPI app with lifespan
+app = FastAPI(
+    title="ipybox API",
+    description="API for secure Python code execution in Docker containers with MCP proxy support",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=os.environ.get("IPYBOX_CORS_ORIGINS", "*").split(","),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # ==================== Authentication ====================
 
@@ -322,28 +370,6 @@ async def verify_api_key(api_key: str = Depends(api_key_header)):
             headers={"WWW-Authenticate": API_KEY_NAME},
         )
     return True
-
-
-# ==================== Application Lifecycle ====================
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Starting ipybox server")
-    await container_manager.start_cleanup_task()
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("Shutting down ipybox server")
-    await container_manager.stop_cleanup_task()
-    
-    # Clean up all containers
-    container_ids = list(container_manager.containers.keys())
-    for container_id in container_ids:
-        try:
-            await container_manager.destroy_container(container_id)
-        except Exception as e:
-            logger.error(f"Error destroying container {container_id} during shutdown: {e}")
 
 
 # ==================== Health Check Endpoint ====================

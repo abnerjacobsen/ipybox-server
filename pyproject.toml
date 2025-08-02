@@ -19,6 +19,9 @@ dependencies = [
     # Required for running the FastAPI server and handling uploads
     "python-multipart>=0.0.20,<0.1",
     "uvicorn[standard]>=0.34.1,<0.35",
+    # Added for MCP proxy & main API server
+    "fastapi>=0.115.0,<0.116",
+    "python-dotenv>=1.0.0,<2",
 ]
 
 [tool.uv]
