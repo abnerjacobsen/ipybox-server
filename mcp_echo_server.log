@@ -1,0 +1,13 @@
+2025-08-02 22:53:48,154 - mcp_echo_server - INFO - Starting MCP echo server
+2025-08-02 22:53:48,155 - mcp_echo_server - INFO - Handling initialize request
+2025-08-02 22:53:48,155 - mcp_echo_server - INFO - MCP echo server stopped
+2025-08-02 22:56:27,464 - mcp_echo_server - INFO - Starting MCP echo server
+2025-08-02 22:56:27,464 - mcp_echo_server - INFO - Handling initialize request
+2025-08-02 22:56:27,465 - mcp_echo_server - INFO - Handling tools/list request
+2025-08-02 22:56:27,465 - mcp_echo_server - INFO - Handling tools/call request for tool 'echo'
+2025-08-02 22:56:27,466 - mcp_echo_server - INFO - Echo tool executed successfully: 'Hello, MCP!'
+2025-08-02 22:56:30,604 - mcp_echo_server - INFO - Starting MCP echo server
+2025-08-02 22:56:30,604 - mcp_echo_server - INFO - Handling initialize request
+2025-08-02 22:56:30,605 - mcp_echo_server - INFO - Handling tools/list request
+2025-08-02 22:56:30,607 - mcp_echo_server - INFO - Handling tools/call request for tool 'echo'
+2025-08-02 22:56:30,607 - mcp_echo_server - INFO - Echo tool executed successfully: 'Hello, MCP!'

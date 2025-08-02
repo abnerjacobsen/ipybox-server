@@ -117,6 +117,12 @@ class MCPSession:
                 cwd=self.working_dir,
                 env={**os.environ, **self.env}
             )
+
+            # Extra diagnostics for easier debugging of startup issues
+            logger.info(f"Subprocess created with PID: {self.process.pid}")
+            logger.info(f"Subprocess stdin:  {self.process.stdin}")
+            logger.info(f"Subprocess stdout: {self.process.stdout}")
+            logger.info(f"Subprocess stderr: {self.process.stderr}")
             
             # Start communication tasks
             self._tasks = [
@@ -441,7 +447,8 @@ class MCPProxy:
             
             while True:
                 try:
-                    response = await session.receive_message(timeout=30.0)
+                    # give the MCP server more time to answer (was 30 s)
+                    response = await session.receive_message(timeout=60.0)
                     
                     # Yield the response
                     yield response
