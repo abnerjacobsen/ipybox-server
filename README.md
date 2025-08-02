@@ -49,7 +49,7 @@ import asyncio
 from ipybox import ExecutionClient, ExecutionContainer
 
 async def main():
-    async with ExecutionContainer(tag="ghcr.io/ghcr.io/gradion-ai/ipybox:minimal") as container:
+    async with ExecutionContainer(tag="ghcr.io/gradion-ai/ipybox:minimal") as container:
         async with ExecutionClient(port=container.executor_port) as client:
             result = await client.execute("print('Hello, world!')")
             print(f"Output: {result.text}")

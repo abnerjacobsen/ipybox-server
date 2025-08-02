@@ -4,7 +4,7 @@ HDR="-H X-API-Key:$KEY"
 
 # Create container
 CID=$(curl -s -X POST $API/containers $HDR -H "Content-Type:application/json" \
-      -d '{"tag":"ghcr.io/ghcr.io/gradion-ai/ipybox:minimal"}' | jq -r .id)
+      -d '{"tag":"ghcr.io/gradion-ai/ipybox:minimal"}' | jq -r .id)
 
 # Execute code
 curl -s -X POST $API/containers/$CID/execute $HDR \
