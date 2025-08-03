@@ -39,9 +39,9 @@ curl $API/containers/$CID/mcp/echo $HDR | jq
 #      -H "Content-Type:application/json" \
 #      -d '{"params":{"message":"https://aumo.ai"}, "timeout": 50}'
 
-# curl -X POST $API/containers/$CID/mcp/echo/echo_tool $HDR \
-#      -H "Content-Type:application/json" \
-#      -d '{"params":{"message":"AGORA FUNCIONOUi"}, "timeout": 50}' | jq
+curl -X POST $API/containers/$CID/mcp/echo/echo_tool $HDR \
+     -H "Content-Type:application/json" \
+     -d '{"params":{"message":"AGORA FUNCIONOUi"}, "timeout": 50}' | jq
 
 # Destroy container
 curl -X DELETE $API/containers/$CID $HDR
