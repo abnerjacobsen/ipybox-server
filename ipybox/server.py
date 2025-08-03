@@ -579,19 +579,145 @@ async def get_mcp_server_tools(
     relpath: str = Query("mcpgen"),
     _: bool = Depends(verify_api_key)
 ):
-    """Get available tools for an MCP server."""
+    """
+    Get available tools for an MCP server.
+
+    Behaviour:
+    1. Validate that generated sources exist (legacy check).
+    2. If the MCP proxy is running and has an ACTIVE session for this
+       container/server we ask the server for `tools/list` and return the rich
+       schema.
+    3. Otherwise we fall back to static introspection of the generated sources
+       and build a *best-effort* JSON-Schema for the Params model.
+    """
     container = await container_manager.get_container(container_id)
-    
+
+    # First check if the MCP server sources exist
     try:
-        async with ResourceClient(port=container.resource_port) as client:
-            sources = await client.get_mcp_sources(relpath=relpath, server_name=server_name)
-            return {"server_name": server_name, "tools": list(sources.keys())}
+        async with ResourceClient(port=container.resource_port) as resource_client:
+            sources = await resource_client.get_mcp_sources(relpath=relpath, server_name=server_name)
+            if not sources:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"MCP server {server_name} not found"
+                )
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get MCP server tools: {str(e)}"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"MCP server {server_name} not found: {str(e)}"
         )
 
+    # Try to get detailed tool information by querying the MCP proxy
+    proxy = getattr(app.state, "mcp_proxy", None)
+    if proxy is not None:
+        try:
+            # Search for an ACTIVE session belonging to this container/server
+            active_session_id: Optional[str] = None
+            for sid, sess in proxy.sessions.items():
+                if (
+                    getattr(sess, "container_id", None) == container_id
+                    and getattr(sess, "server_name", None) == server_name
+                    and getattr(sess, "state", None).value == "active"
+                ):
+                    active_session_id = sid
+                    break
+
+            if active_session_id:
+                tools_req = {"jsonrpc": "2.0", "method": "tools/list", "id": 1}
+                async for resp in proxy.handle_mcp_request(
+                    container_id=container_id,
+                    server_name=server_name,
+                    request_data=tools_req,
+                    session_id=active_session_id,
+                ):
+                    if "result" in resp and "tools" in resp["result"]:
+                        tools = resp["result"]["tools"]
+                        return {
+                            "server_name": server_name,
+                            "tools": tools,
+                            "tool_names": [t.get("name") for t in tools],
+                        }
+                    break
+        except Exception as e:
+            logger.warning(
+                "Failed to fetch detailed tool info via existing MCP session for %s: %s",
+                server_name,
+                e,
+            )
+
+    # ------------------------------------------------------------------ #
+    # 4) Fallback – introspect generated sources for basic schema info   #
+    # ------------------------------------------------------------------ #
+    # Even if we cannot reach the runtime MCP server we may still parse
+    # the generated stub code to provide *some* parameter metadata.
+    import re
+
+    tool_names = list(sources.keys())
+    enhanced_tools: List[Dict[str, Any]] = []
+
+    for tool_name in tool_names:
+        tool_info: Dict[str, Any] = {
+            "name": tool_name,
+            "description": f"Tool: {tool_name}",
+            "inputSchema": {},
+        }
+
+        source_code: str = sources.get(tool_name, "")
+        if source_code:
+            # Look for a `Params` class inheriting BaseModel
+            params_match = re.search(
+                r"class\s+Params\(\s*BaseModel\s*\)\s*:(.*?)(?=\nclass|\Z)",
+                source_code,
+                re.DOTALL,
+            )
+            if params_match:
+                params_content = params_match.group(1)
+                # Extract simple field definitions  `<name>: <type>`
+                field_matches = re.findall(
+                    r"^\s*(\w+)\s*:\s*([^=\n]+)", params_content, re.MULTILINE
+                )
+                if field_matches:
+                    properties: Dict[str, Any] = {}
+                    required: List[str] = []
+
+                    for field_name, field_type in field_matches:
+                        field_name = field_name.strip()
+                        field_type = field_type.strip()
+
+                        # Very naive python→jsonschema type mapping
+                        if "str" in field_type:
+                            json_type = "string"
+                        elif "int" in field_type:
+                            json_type = "integer"
+                        elif "float" in field_type:
+                            json_type = "number"
+                        elif "bool" in field_type:
+                            json_type = "boolean"
+                        else:
+                            json_type = "string"
+
+                        properties[field_name] = {"type": json_type}
+
+                        # Mark as required if not Optional[...] and no default '='
+                        if "Optional" not in field_type:
+                            required.append(field_name)
+
+                    if properties:
+                        schema: Dict[str, Any] = {
+                            "type": "object",
+                            "properties": properties,
+                        }
+                        if required:
+                            schema["required"] = required
+                        tool_info["inputSchema"] = schema
+
+        enhanced_tools.append(tool_info)
+
+    return {
+        "server_name": server_name,
+        "tools": enhanced_tools,
+        "tool_names": tool_names,
+    }
 
 @app.post("/containers/{container_id}/mcp/{server_name}/{tool_name}", response_model=MCPToolResponse, tags=["MCP"])
 async def execute_mcp_tool(
